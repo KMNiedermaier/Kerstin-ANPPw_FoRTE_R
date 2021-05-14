@@ -1,0 +1,11 @@
+,stratum,term,df,sumsq,meansq,statistic,p.value
+1,replicate:week,replicate,3,4124,1375,6.501,0.001
+2,replicate:week,week,15,70168,4678,22.126,0.000
+3,replicate:week,Residuals,45,9514,211,,
+4,replicate:treatment,treatment,1,17,17,0.017,0.904
+5,replicate:treatment,Residuals,3,2951,984,,
+6,replicate:week:treatment,week:treatment,15,1035,69,1.091,0.391
+7,replicate:week:treatment,Residuals,45,2846,63,,
+8,Within,severity,3,962,321,4.235,0.006
+9,Within,week:severity,45,7706,171,2.261,0.000
+10,Within,Residuals,336,25442,76,,

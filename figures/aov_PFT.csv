@@ -1,0 +1,11 @@
+,stratum,term,df,sumsq,meansq,statistic,p.value
+1,replicate:treatment,replicate,3,2548508,849503,1.261,0.427
+2,replicate:treatment,treatment,1,18509,18509,0.027,0.879
+3,replicate:treatment,Residuals,3,2020717,673572,,
+4,replicate:PFT,PFT,1,56444,56444,0.035,0.863
+5,replicate:PFT,Residuals,3,4832009,1610670,,
+6,replicate:treatment:PFT,PFT:treatment,1,934523,934523,2.141,0.240
+7,replicate:treatment:PFT,Residuals,3,1309686,436562,,
+8,Within,severity,3,577586,192529,0.390,0.761
+9,Within,severity:PFT,3,2710208,903403,1.829,0.156
+10,Within,Residuals,42,20740309,493817,,
