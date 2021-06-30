@@ -4,17 +4,24 @@
 # Probably run "initial_subcanopy_data first so you have all the stuff you need 
 # in the global environment
 
+#load necessary packages 
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(lubridate)
+library(plotrix)
+
 
 # Goal #1: Look at subcanopy NPP over the years w/ variance and compare
 
 #### 2019-2020 first:
-sc_2019 <- read.csv("data_don't_use/fd_subcanopy_diameter_2019.csv")
+sc_2019 <- read.csv("old_data/fd_subcanopy_diameter_2019.csv")
 
 ## Setting up the increments
 sc_aug_2019 <- filter(sc_2019, date == "2019-08-03" | date == "2019-08-04") %>% 
   select(subplot_id, species, tag, dbh_mm, date)
 
-sc_2020 <- read.csv("data_don't_use/fd_subcanopy_diameter_2020.csv")
+sc_2020 <- read.csv("old_data/fd_subcanopy_diameter_2020.csv")
 
 sc_nov_2020 <- filter(sc_2020, date == "2020-11-18" | date == "2020-11-19")
 
@@ -90,7 +97,7 @@ sc_20_inc$biomass_inc[sc_20_inc$biomass_inc < 0] <- 0
 # not capture in my sample. I then join the tree counts df which creates a new 
 # record within subplots for species that were not captured in my sample population. 
 
-tree_counts <- read.csv("data_don't_use//subcanopy_stemcounts.csv")
+tree_counts <- read.csv("old_data//subcanopy_stemcounts.csv")
 # select columns of interest
 tree_counts <-  select(tree_counts, subplot, species, count)
 
@@ -272,3 +279,6 @@ two_yr_NPP <- merge(NPP_sc_2020,NPP_sc_2021,by="subplot_id") %>%
   rename(treatment = treatment.x)
 two_yr_NPP<- two_yr_NPP[c("subplot_id", "NPP_2020", "NPP_2021", "replicate", "severity", 
                      "treatment")]
+
+##### Trying to make some figures?????
+
