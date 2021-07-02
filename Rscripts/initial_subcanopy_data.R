@@ -15,13 +15,14 @@ library(lubridate)
 library(plotrix)
 
 # importing tree count data 
-tree_counts <- read.csv("data_don't_use/subcanopy_stemcounts.csv")
+tree_counts <- read.csv("old_data/subcanopy_stemcounts.csv")
 # select columns of interest
 tree_counts <-  select(tree_counts, subplot, species, count)
 
 #importing csv of subcanopy diameter measurements 
 subcanopy_data_2021 <- read.csv("2021_data/subcanopy_diameter_2021.csv")
-subcanopy_data_2020 <- read.csv("data_don't_use/fd_subcanopy_diameter_2020.csv")
+subcanopy_data_2020 <- read.csv("old_data/fd_subcanopy_diameter_2020.csv")
+subcanopy_data_2019 <- read.csv("old_data/fd_subcanopy_diameter_2019.csv")
 
 
 # this chunk of code stands alone (not used in ANPPw calcs, but interesting data!)
