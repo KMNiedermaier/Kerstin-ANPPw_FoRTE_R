@@ -15,13 +15,14 @@ library(lubridate)
 library(plotrix)
 
 # importing tree count data 
-tree_counts <- read.csv("data_don't_use/subcanopy_stemcounts.csv")
+tree_counts <- read.csv("old_data/subcanopy_stemcounts.csv")
 # select columns of interest
 tree_counts <-  select(tree_counts, subplot, species, count)
 
 #importing csv of subcanopy diameter measurements 
 subcanopy_data_2021 <- read.csv("2021_data/subcanopy_diameter_2021.csv")
-subcanopy_data_2020 <- read.csv("data_don't_use/fd_subcanopy_diameter_2020.csv")
+subcanopy_data_2020 <- read.csv("old_data/fd_subcanopy_diameter_2020.csv")
+subcanopy_data_2019 <- read.csv("old_data/fd_subcanopy_diameter_2019.csv")
 
 
 # this chunk of code stands alone (not used in ANPPw calcs, but interesting data!)
@@ -80,16 +81,33 @@ biomass_a <- function(species, DBH){
 # vectorize my function becuase it will be used on a vetor 
 biomass_a <- Vectorize(biomass_a, vectorize.args = c("species", "DBH"))
 
+### Quickly clean up 2021 data
+
+subcanopy_data_2021$nested_subplot <- substr(subcanopy_data_2021$uniqueID, 5, 5)
+subcanopy_data_2021$notes <- "NA"
+
+# this deletes the nested subplot ID from the uniqueID column leaving only the subplot_id
+subcanopy_data_2021$uniqueID <- gsub('.$', '', subcanopy_data_2021$uniqueID)
+
+# make all column names lowercase 
+names(subcanopy_data_2021) <- tolower(names(subcanopy_data_2021))
+
+# now rename columns to match other forte data products
+names(subcanopy_data_2021)[names(subcanopy_data_2021) == "uniqueid"] <- "subplot_id"
+
+# now drop unwanted columns and reorder 
+subcanopy_data_2021 <- subcanopy_data_2021[c("subplot_id", "nested_subplot", "tag", "species", "dbh_mm", 
+                     "date", "notes")]
 
 # select important columns from subcanopy data. Then remove records where DBH_mm
 # was NA (some stems are missing week 1 and 2 of data collection). Next I convert
 # DBH in mm to cm, and use my biomass_a function to estimate biomass(kg)
 # (DBH allometry) 
 subcanopy_select <- subcanopy_data_2021 %>% 
-  select(uniqueID, species, tag, DBH_mm, date) %>% 
-  filter(!is.na(DBH_mm)) %>% 
-  mutate(DBH_cm = DBH_mm/10) %>%
-  mutate(biomass_kg = biomass_a(species, DBH_cm)) 
+  select(subplot_id,  species, tag, dbh_mm, date) %>% 
+  filter(!is.na(dbh_mm)) %>% 
+  mutate(dbh_cm = dbh_mm/10) %>%
+  mutate(biomass_kg = biomass_a(species, dbh_cm)) 
 
 subcanopy_2020_select <- subcanopy_data_2020 %>% 
   select(subplot_id, species, tag, dbh_mm, date) %>% 
@@ -120,20 +138,53 @@ nov_2020 <- subcanopy_2020_select %>%
 jun_2021 <- subcanopy_select %>% 
   group_by(tag) %>% 
   filter(row_number() == n()) %>% 
-  mutate(biomass_kg = biomass_a(species, DBH_cm)) 
+  mutate(biomass_kg = biomass_a(species, dbh_cm)) 
 
 # now I bind these two dfs together, arrange and group for organization. Next, I do
 # some vector math to calculate the biomass increment (biomass_inc). Then, I filter 
 # for the end of season measurement (no increment for first measurement), and again, 
 # select and arrange for organization
+
 sub_annual_inc <- bind_rows(nov_2020, jun_2021) %>% 
   arrange(tag) %>% group_by(tag) %>% 
   mutate(biomass_inc = biomass_kg - lag(biomass_kg, default = first(biomass_kg))) %>% 
   filter(row_number() == n()) %>% 
-  select(species, tag, biomass_kg, biomass_inc) %>% 
-  arrange(tag)
+  select(subplot_id, species, tag, biomass_kg, biomass_inc) %>% 
+  arrange(subplot_id)
 
 #get rid of negatives
 sub_annual_inc$biomass_inc[sub_annual_inc$biomass_inc < 0] <- 0
+
+# Now I will move from biomass increment to subcanopy NPP. To scale from my sampled 
+# population to the entire population, I first calculate and create a new vector 
+# with mean subplot biomass increment. This is then used for subcanopy species that 
+# are within the subplot, but that I did not capture in my sample. I then join the 
+# tree counts df which creates a new record within subplots for species that were 
+# not captures in my sample population. Next, I fill the mean subplot increments, and
+# create a new vector that has either the measured increment (sampled species) or the 
+# mean increment (unsampled species). Then, I summarize for mean_biomass for each
+# subplot, and species, rejoin tree_counts (lost in the summarize), and scale up to 
+# the hectare. Lastly, I sum the biomass production of all species within a subplot
+# and multiply by a site specific carbon fraction of 0.48 for kgC_ha_yr
+NPP_sc_2021 <- sub_annual_inc %>% 
+  group_by(subplot_id) %>% 
+  summarize(mean_subplot = mean(biomass_inc)) %>% 
+  left_join(sub_annual_inc) %>% 
+  right_join(tree_counts) %>% arrange(subplot_id, species) %>% 
+  group_by(subplot_id) %>% fill(mean_subplot, .direction = "updown") %>% 
+  group_by(subplot_id, species) %>% 
+  mutate(biomass_inc_obs_est = case_when(
+    !is.na(biomass_inc) ~ biomass_inc,
+    is.na(biomass_inc) ~ mean_subplot
+  )) %>% 
+  summarize(mean_biomass = mean(biomass_inc_obs_est)) %>% 
+  right_join(tree_counts) %>% 
+  mutate(sp_biomass_ha = mean_biomass * count * 40) %>% 
+  # * species count * 40 b/c counts were in 0.025ha
+  group_by(subplot_id) %>% 
+  summarize(kgC_ha_yr = sum(sp_biomass_ha) * 0.48) %>% 
+  rename(NPP_subcan = kgC_ha_yr)
+
+
 
 
